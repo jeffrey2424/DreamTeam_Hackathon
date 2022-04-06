@@ -61,10 +61,12 @@ def process_row(series):
 
         updated_row = series.copy()
         for k, v in parsed_response.items():
+            if k.startswith("@"):
+                k = k[1:]
             updated_row[k] = v
 
         # Add MID column
-        mid = updated_row["@id"]
+        mid = updated_row["id"]
         if mid.startswith("kg:"):
             mid = mid[3:]
         updated_row["mid"] = mid
@@ -77,7 +79,7 @@ def process_row(series):
         # Cleanup columns
         updated_row["name"] = "gkg_name"
 
-        for k in ("@type", "image", "description"):
+        for k in ("type", "image", "description"):
             with suppress(KeyError):
                 del updated_row[k]
         with suppress(KeyError):
@@ -85,6 +87,7 @@ def process_row(series):
 
     except Exception as err:
         print(f"Failed to get MID for {series['Name']}: {err}")
+        print(response.decode())
         updated_row = series.copy()
 
     return updated_row
@@ -101,7 +104,7 @@ if __name__ == "__main__":
 
     df = pd.read_csv(args.input_filename)
 
-    with ThreadPool(8) as pool:
+    with ThreadPool(4) as pool:
         output = pool.map(process_row, [df.iloc[i] for i in range(df.shape[0])])
 
     df_out = pd.concat(output, axis=1).T
