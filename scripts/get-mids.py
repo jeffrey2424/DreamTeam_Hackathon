@@ -2,6 +2,8 @@
 import os
 import json
 import subprocess
+from contextlib import suppress
+from multiprocessing.pool import ThreadPool
 import urllib.parse
 import pandas as pd
 from argparse import ArgumentParser
@@ -48,6 +50,46 @@ def parse_response(response):
     return entity_md
 
 
+def process_row(series):
+    """
+    """
+    query = build_query(series)
+    response = submit_query(query, api_key=api_key)
+
+    try:
+        parsed_response = parse_response(response)
+
+        updated_row = series.copy()
+        for k, v in parsed_response.items():
+            updated_row[k] = v
+
+        # Add MID column
+        mid = updated_row["@id"]
+        if mid.startswith("kg:"):
+            mid = mid[3:]
+        updated_row["mid"] = mid
+
+        # Add image URL
+        # NOTE: Sometimes response does not contain image
+        with suppress(KeyError):
+            updated_row["image_url"] = updated_row["image"]["contentUrl"]
+
+        # Cleanup columns
+        updated_row["name"] = "gkg_name"
+
+        for k in ("@type", "image", "description"):
+            with suppress(KeyError):
+                del updated_row[k]
+        with suppress(KeyError):
+            del updated_row["detailedDescription"]
+
+    except Exception as err:
+        print(f"Failed to get MID for {series['Name']}: {err}")
+        updated_row = series.copy()
+
+    return updated_row
+
+
 if __name__ == "__main__":
 
     parser = ArgumentParser()
@@ -59,44 +101,8 @@ if __name__ == "__main__":
 
     df = pd.read_csv(args.input_filename)
 
-    output = []
-
-    for idx, series in df.iterrows():
-
-        query = build_query(series)
-        response = submit_query(query, api_key=api_key)
-
-        try:
-            parsed_response = parse_response(response)
-
-            updated_row = series.copy()
-            for k, v in parsed_response.items():
-                updated_row[k] = v
-
-            # Add MID column
-            mid = updated_row["@id"]
-            if mid.startswith("kg:"):
-                mid = mid[3:]
-            updated_row["mid"] = mid
-
-            # Add image URL
-            updated_row["image_url"] = updated_row["image"]["contentUrl"]
-
-            # Cleanup columns
-            updated_row["name"] = "gkg_name"
-            del updated_row["@type"]
-            del updated_row["image"]
-            del updated_row["description"]
-            try:
-                del updated_row["detailedDescription"]
-            except KeyError:
-                pass
-
-        except Exception as err:
-            print(f"Failed to get MID for {series['Name']}: {err}")
-            updated_row = series.copy()
-
-        output.append(updated_row)
+    with ThreadPool(8) as pool:
+        output = pool.map(process_row, [df.iloc[i] for i in range(df.shape[0])])
 
     df_out = pd.concat(output, axis=1).T
-    df_out.to_csv(args.output_filename)
+    df_out.to_csv(args.output_filename, index=False)
