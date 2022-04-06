@@ -66,17 +66,35 @@ if __name__ == "__main__":
         query = build_query(series)
         response = submit_query(query, api_key=api_key)
 
-        parsed_response = parse_response(response)
+        try:
+            parsed_response = parse_response(response)
 
-        updated_row = series.copy()
-        for k, v in parsed_response.items():
-            updated_row[k] = v
+            updated_row = series.copy()
+            for k, v in parsed_response.items():
+                updated_row[k] = v
 
-        # Add MID column
-        mid = updated_row["@id"]
-        if mid.startswith("kg:"):
-            mid = mid[3:]
-        updated_row["mid"] = mid
+            # Add MID column
+            mid = updated_row["@id"]
+            if mid.startswith("kg:"):
+                mid = mid[3:]
+            updated_row["mid"] = mid
+
+            # Add image URL
+            updated_row["image_url"] = updated_row["image"]["contentUrl"]
+
+            # Cleanup columns
+            updated_row["name"] = "gkg_name"
+            del updated_row["@type"]
+            del updated_row["image"]
+            del updated_row["description"]
+            try:
+                del updated_row["detailedDescription"]
+            except KeyError:
+                pass
+
+        except Exception as err:
+            print(f"Failed to get MID for {series['Name']}: {err}")
+            updated_row = series.copy()
 
         output.append(updated_row)
 
