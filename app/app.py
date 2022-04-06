@@ -6,23 +6,57 @@ app = Dash(__name__)
 
 colours = {
     'background': '#00864F',
-    'text': '#000000'
+    'text': '#FFFFFF'
 }
 
 # assume you have a "long-form" data frame
 # see https://plotly.com/python/px-arguments/ for more options
-# df_companies = pd.read_csv("companies.csv")
-# df_stocks = pd.read_csv("fake_stock_price.csv")
+df_companies = pd.read_csv("../data/test_data/companies.csv")
+df_stocks = pd.read_csv("../data/test_data/fake_stock_price.csv")
 
-# fig = px.line(df_stocks, x="Fruit", y="Amount", color="City",)
+
+
+
 
 app.layout = html.Div(
     children=[
-        html.H1(children='Company Stock Checker', style={"color": colours["text"]}),
+        html.H1(children='Company Stock Checker', style={"color": colours["text"], 'textAlign': 'center'}),
         html.Br(),
+        html.Div(
+            children="Select a company to check",
+            style={"color": colours["text"], 'textAlign': 'left'}
+        ),
+        dcc.Dropdown(
+            id="slct_comp",
+            options={row[1]["Code"]: row[1]["Name"] for row in df_companies.iterrows()},
+            multi=False,
+            style={'width': "40%"},
+            placeholder="Select a company...",
+        ),
+        dcc.Graph(
+            id="stock_graph",
+            figure={}
+        )
     ],
+    style={
+        "width": "100%",
+        "height": "100vh",
+        "backgroundColor": colours["background"],
+        "font-family": 'Arial'
+    }
 )
 
+
+@app.callback(
+    Output(component_id='stock_graph', component_property='figure'),
+    Input(component_id='slct_comp', component_property='value')
+)
+def generate_stockgraph(company_code: str):
+
+    df = df_stocks[df_stocks["Code"] == company_code]
+
+    fig = px.line(df, x="date", y="price")
+    return fig
 
 
 if __name__ == '__main__':
