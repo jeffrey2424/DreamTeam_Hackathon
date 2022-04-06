@@ -1,6 +1,11 @@
+from io import StringIO
+
 from dash import Dash, html, dcc, Output, Input
 import plotly.express as px
 import pandas as pd
+
+from google.cloud import storage
+
 
 app = Dash(__name__)
 
@@ -11,11 +16,24 @@ colours = {
 
 # assume you have a "long-form" data frame
 # see https://plotly.com/python/px-arguments/ for more options
-df_companies = pd.read_csv("../data/test_data/companies.csv")
-df_stocks = pd.read_csv("../data/test_data/fake_stock_price.csv")
+# df_companies = pd.read_csv("../data/test_data/companies.csv")
+# df_stocks = pd.read_csv("../data/test_data/fake_stock_price.csv")
+
+
+def read_blob_as_csv(bucket_name, file_name):
+    # try:
+    client = storage.Client()
+    # except:
+    #     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = r"C:\Users\jeffr\Documents\Python\Hackathon\MainHack\DreamTeam_Hackathon\hackathon-team-10-6ca9ff276b51.json"
+    #     client = storage.Client()
+    bucket = client.get_bucket(bucket_name)
+    file = StringIO(bucket.get_blob(file_name).download_as_string().decode('utf-8'))
+    return pd.read_csv(file)
 
 
 
+df_companies = read_blob_as_csv('hackathon-team-10-test-data', "companies.csv")
+df_stocks = read_blob_as_csv('hackathon-team-10-test-data', "fake_stock_price.csv")
 
 
 app.layout = html.Div(
@@ -60,4 +78,4 @@ def generate_stockgraph(company_code: str):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True, port=8080, host='localhost')
+    app.run_server(debug=True, host='0.0.0.0')
