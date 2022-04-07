@@ -12,3 +12,6 @@
 ```
 conda create --name lbghackathon python=3.9
 ```
+
+## Postgresql Schemas
+Table Schemas can be found in `scripts/create_table_postgresql.txt`
