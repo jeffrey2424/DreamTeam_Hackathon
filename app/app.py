@@ -5,11 +5,19 @@ import dash_bootstrap_components as dbc
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import pandas as pd
+import alpaca_trade_api as tradeapi
 
 from google.cloud import storage
 
+API_KEY = 'PK9LDUXHLJMJZIDWIP7S'
+SECRET_KEY = '2nBX4wGxrGtJbSK2ERuhTeHLNck9hvXQTjhKRmIR'
+BASE_URL = 'https://paper-api.alpaca.markets'
+LAST_PORTFOLIO_VALUE = 0
 
 app = Dash(__name__)
+
+api = tradeapi.REST(API_KEY, SECRET_KEY, BASE_URL)
+
 
 colours = {
     'background': '#00864F',
@@ -55,7 +63,12 @@ app.layout = html.Div(
         dcc.Graph(
             id="stock_graph",
             figure={}
-        )
+        ),
+        html.Br(),
+        html.Div([
+            dcc.Interval(id='portfolio_value_interval', interval=2000),
+            html.H1(id='portfolio_value', children='')
+        ]),
     ],
     style={
         "width": "100%",
@@ -64,6 +77,23 @@ app.layout = html.Div(
         "font-family": 'Arial'
     }
 )
+
+
+@app.callback(Output('portfolio_value', 'children'),
+              [Input('portfolio_value_interval', 'n_intervals')]
+              )
+def get_portfolio_value(n):
+    global LAST_PORTFOLIO_VALUE
+    equity = api.get_portfolio_history(period='1D', timeframe='1D').equity[-1]
+    header = html.H1(
+        children=f"Portfolio Value: £{int(equity)}",
+        style={
+            'color': "Green" if equity >= LAST_PORTFOLIO_VALUE else "Red",
+            'textAlign': 'center'
+        }
+    )
+    LAST_PORTFOLIO_VALUE = equity
+    return header
 
 
 @app.callback(
