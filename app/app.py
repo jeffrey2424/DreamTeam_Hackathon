@@ -1,4 +1,4 @@
-from io import StringIO
+from src.io import StringIO
 
 from dash import Dash, html, dcc, Output, Input
 import plotly.express as px
