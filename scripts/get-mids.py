@@ -77,9 +77,9 @@ def process_row(series):
             updated_row["image_url"] = updated_row["image"]["contentUrl"]
 
         # Cleanup columns
-        updated_row["name"] = "gkg_name"
+        updated_row["gkg_name"] = updated_row["name"]
 
-        for k in ("type", "image", "description"):
+        for k in ("type", "image", "description", "name"):
             with suppress(KeyError):
                 del updated_row[k]
         with suppress(KeyError):
@@ -89,6 +89,8 @@ def process_row(series):
         print(f"Failed to get MID for {series['Name']}: {err}")
         print(response.decode())
         updated_row = series.copy()
+
+    updated_row["integer"] = 1  # To get BQ to detect header
 
     return updated_row
 

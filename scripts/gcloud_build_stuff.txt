@@ -1,0 +1,2 @@
+gcloud builds submit "C:/Users/jeffr/Documents/Python/Hackathon/MainHack/DreamTeam_Hackathon" --tag=gcr.io./hackathon-team-10/test_app_v1_0
+
