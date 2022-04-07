@@ -35,3 +35,14 @@ CREATE TABLE IF NOT EXISTS main.company_mappings_mid (
    mid VARCHAR ( 50 ),
    image_url VARCHAR ( 500 )
 );
+
+
+CREATE TABLE IF NOT EXISTS main.nasdaq_history (
+   Date VARCHAR ( 50 ) NOT NULL,
+   Ticker VARCHAR ( 10 ) NOT NULL,
+   Close REAL,
+   High REAL,
+   Low REAL, 
+   Open REAL, 
+   VOLUME INTEGER
+);
