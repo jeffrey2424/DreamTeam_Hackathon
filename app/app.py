@@ -1,4 +1,4 @@
-from src.io import StringIO
+from io import StringIO
 
 from dash import Dash, html, dcc, Output, Input
 import dash_bootstrap_components as dbc
