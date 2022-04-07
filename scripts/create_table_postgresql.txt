@@ -46,3 +46,12 @@ CREATE TABLE IF NOT EXISTS main.nasdaq_history (
    Open REAL, 
    VOLUME INTEGER
 );
+
+
+CREATE TABLE IF NOT EXISTS main.alpaca_trades (
+   Date VARCHAR ( 50 ) NOT NULL,
+   Ticker VARCHAR ( 10 ) NOT NULL,
+   Trade VARCHAR ( 10 ) NOT NULL,
+   Quantity SMALLINT NOT NULL,
+   url VARCHAR ( 500 )
+);
