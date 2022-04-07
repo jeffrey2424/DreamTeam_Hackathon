@@ -2,10 +2,10 @@ import alpaca_trade_api as tradeapi
 import config
 from google.cloud.sql.connector import Connector
 import sqlalchemy
+import os
 
 # initialize Connector object
 connector = Connector()
-
 
 def _getconn():
     conn = connector.connect(
@@ -25,7 +25,10 @@ pool = sqlalchemy.create_engine(
 
 
 def trade_stock(req):
+
     data = req.get_json()
+
+    bq_run_time = data['bq_run_time']
 
     api = tradeapi.REST(config.API_KEY, config.SECRET_KEY, config.BASE_URL)
 
@@ -33,21 +36,25 @@ def trade_stock(req):
     c_map = _load_company_mappings()
 
     # read the new gdelt info / need a timestamp
-    latest_gdelt_events = _load_latest_gdelt_events()
+    latest_gdelt_events = _load_latest_gdelt_events(bq_run_time)
 
     # make trades
 
     orders = []
 
     for row in latest_gdelt_events:
-        url, date, corpus_s, sent_s, company, time, id = row
-        symbol = c_map[company]
+        print(row)
+        print('-------')
+
+        _, _, _, mid, _, _, sent, _, _, _ = row
+
+        symbol = c_map[mid]
 
         try:
             order = api.submit_order(
                 symbol,
                 10,
-                'buy' if sent_s > 0.5 else 'sell',
+                'buy' if sent > 0.5 else 'sell',
                 'market',
                 'gtc'
             )
@@ -57,8 +64,6 @@ def trade_stock(req):
 
     return {
         'code': 'success',
-        'order_id': order.id,
-        'order_status': order.status
     }
 
 
@@ -67,14 +72,14 @@ def _load_company_mappings():
         # query database
         result = db_conn.execute("SELECT * FROM main.company_mappings_mid").fetchall()
 
-        d = {row[0]: row[1] for row in result}
+        d = {row[4]: row[1] for row in result}
 
         return d
 
 
-def _load_latest_gdelt_events():
+def _load_latest_gdelt_events(bq_run_time):
     with pool.connect() as db_conn:
         # query database
-        result = db_conn.execute("SELECT * FROM test2.gdelt_out LIMIT 3").fetchall()
+        result = db_conn.execute(f"SELECT * FROM gdelt_events_2 WHERE bq_run_time > {bq_run_time}").fetchall()
 
         return result

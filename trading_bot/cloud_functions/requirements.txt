@@ -1,3 +1,4 @@
 alpaca_trade_api
 sqlalchemy
-cloud-sql-python-connector
+pg8000
+cloud_sql_python_connector
