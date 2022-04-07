@@ -9,7 +9,10 @@ import pandas as pd
 from google.cloud import storage
 
 
-app = Dash(__name__)
+app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP],
+                # meta_tags=[{'name': 'viewport',
+                #             'content': 'width=device-width, initial-scale=1.0'}]
+                )
 
 colours = {
     'background': '#00864F',
@@ -32,30 +35,61 @@ df_companies = read_blob_as_csv('hackathon-team-10-company-lists', "company_name
 df_stocks = read_blob_as_csv('hackathon-team-10-ticker-data', "20220406_1d_nasdaq.csv")
 df_events = read_blob_as_csv('hackathon-team-10-test-data', "fake_gdelt_out.csv")
 
+LOGO_URL = "https://storage.googleapis.com/london_wall_street_bets/London%20Wall%20Street%20Bets%20Scenic.png"
 
-app.layout = html.Div(
-    children=[
-        dbc.Row(
-            dbc.Col(
-                html.H1(children='Company Stock Checker', style={"color": colours["text"], 'textAlign': 'center'})
-            )
+
+app.layout = dbc.Container(
+    [
+        html.A(
+            dbc.Row(
+                [
+                    dbc.Col(html.H1(children='Company Stock Checker', style={"color": colours["text"], 'textAlign': 'left', 'margin-top': 45}), width=5),
+                    dbc.Col(html.Img(src=LOGO_URL, style={'height': '100%', 'width': '100%'}), width={'size': 2, 'offset': 5}),
+                ],
+                className='border border-dark',
+                style={"backgroundColor": "#00864F"},
+            ),
         ),
-        html.Br(),
-        html.Div(
-            children="Select a company to check",
-            style={"color": colours["text"], 'textAlign': 'left'}
+        html.A(
+            [
+                dbc.Col(
+                    [
+                        dbc.Row(
+                            [
+                                html.Div(
+                                    children="Select a company to check",
+                                    style={"color": colours["text"], 'textAlign': 'left'}
+                                ),
+                            ]
+                        ),
+                        dbc.Row(
+                            [
+                                dcc.Dropdown(
+                                    id="slct_comp",
+                                    options={row[1]["Code"]: row[1]["Name"] for row in df_companies.iterrows()},
+                                    multi=False,
+                                    style={'width': "40%"},
+                                    value="GOOG"
+                                ),
+
+                            ]
+                        ),
+                    ]
+                ),
+                dbc.Col(
+                    [
+                        dbc.Row(
+                            [
+                                dcc.Graph(
+                                    id="stock_graph",
+                                    figure={}
+                                )
+                            ]
+                        ),
+                    ]
+                ),
+            ]
         ),
-        dcc.Dropdown(
-            id="slct_comp",
-            options={row[1]["Code"]: row[1]["Name"] for row in df_companies.iterrows()},
-            multi=False,
-            style={'width': "40%"},
-            value="GOOG"
-        ),
-        dcc.Graph(
-            id="stock_graph",
-            figure={}
-        )
     ],
     style={
         "width": "100%",
