@@ -8,16 +8,29 @@ import pandas as pd
 
 from google.cloud import storage
 
+from src.io.sql import SQLConnection
 
-app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP],
-                # meta_tags=[{'name': 'viewport',
-                #             'content': 'width=device-width, initial-scale=1.0'}]
-                )
+
+conn = SQLConnection(
+        connection_name="hackathon-team-10:us-central1:ui-backend-test",
+        db="gdelt_sustainability"
+    )
+
+
+app = Dash(
+    __name__,
+    external_stylesheets=[dbc.themes.BOOTSTRAP],
+    meta_tags=[
+        {'name': 'viewport', 'content': 'width=device-width, initial-scale=1.0'}
+    ]
+)
 
 colours = {
     'background': '#00864F',
     'text': '#FFFFFF'
 }
+
+LOGO_URL = "https://storage.googleapis.com/london_wall_street_bets/London%20Wall%20Street%20Bets%20Scenic.png"
 
 # assume you have a "long-form" data frame
 # see https://plotly.com/python/px-arguments/ for more options
@@ -34,8 +47,6 @@ def read_blob_as_csv(bucket_name, file_name):
 df_companies = read_blob_as_csv('hackathon-team-10-company-lists', "company_name_mappings.csv")
 df_stocks = read_blob_as_csv('hackathon-team-10-ticker-data', "20220406_1d_nasdaq.csv")
 df_events = read_blob_as_csv('hackathon-team-10-test-data', "fake_gdelt_out.csv")
-
-LOGO_URL = "https://storage.googleapis.com/london_wall_street_bets/London%20Wall%20Street%20Bets%20Scenic.png"
 
 
 app.layout = dbc.Container(
