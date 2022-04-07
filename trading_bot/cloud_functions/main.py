@@ -3,6 +3,7 @@ import config
 from google.cloud.sql.connector import Connector
 import sqlalchemy
 import os
+from datetime import datetime
 
 # initialize Connector object
 connector = Connector()
@@ -46,21 +47,31 @@ def trade_stock(req):
         print(row)
         print('-------')
 
-        _, _, _, mid, _, _, sent, _, _, _ = row
+        article_url, _, _, mid, _, _, sent, _, _, _ = row
 
         symbol = c_map[mid]
+        trade = 'buy' if sent > 0.5 else 'sell'
 
         try:
             order = api.submit_order(
                 symbol,
                 10,
-                'buy' if sent > 0.5 else 'sell',
+                trade,
                 'market',
                 'gtc'
             )
             orders.append(order)
         except Exception as e:
             pass
+
+        try:            
+            now = datetime.now()
+            now = now.strftime("%Y-%m-%d %H:%M:%S")
+            _insert_trades_made(date = now, ticker = symbol, trade = trade, quantity=10, url=article_url)
+        except Exception as e:
+            pass
+
+
 
     return {
         'code': 'success',
@@ -83,3 +94,13 @@ def _load_latest_gdelt_events(bq_run_time):
         result = db_conn.execute(f"SELECT * FROM gdelt_events_2 WHERE bq_run_time > {bq_run_time}").fetchall()
 
         return result
+
+
+def _insert_trades_made(date, ticker, trade, quantity, url):
+    with pool.connect() as db_conn:
+        # Insert orders placed
+        q = f"""
+            INSERT INTO main.alpaca_trades(Date, Ticker, Trade, Quantity, url)
+            VALUES ('{date}', '{ticker}', '{trade}', {quantity}, '{url}');
+        """
+        db_conn.execute(q)
