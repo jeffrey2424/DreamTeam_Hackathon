@@ -1,6 +1,7 @@
 from io import StringIO
 
 from dash import Dash, html, dcc, Output, Input
+import dash_bootstrap_components as dbc
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import pandas as pd
@@ -34,7 +35,11 @@ df_events = read_blob_as_csv('hackathon-team-10-test-data', "fake_gdelt_out.csv"
 
 app.layout = html.Div(
     children=[
-        html.H1(children='Company Stock Checker', style={"color": colours["text"], 'textAlign': 'center'}),
+        dbc.Row(
+            dbc.Col(
+                html.H1(children='Company Stock Checker', style={"color": colours["text"], 'textAlign': 'center'})
+            )
+        ),
         html.Br(),
         html.Div(
             children="Select a company to check",
@@ -76,7 +81,7 @@ def generate_stockgraph_and_events(company_code: str):
 
 def get_stock_line(company_code):
     df = df_stocks[df_stocks["Company"] == company_code]
-    return go.Line(x=df["Date"], y=df["Close"])
+    return go.Line(x=df["Date"], y=df["Close"], name="Stock")
 
 
 def get_events_scatter(company_code):
@@ -97,7 +102,8 @@ def get_events_scatter(company_code):
             symbol=5,
             opacity=0.7,
             ),
-        mode='markers'
+        mode='markers',
+        name="Good Sustainability Event",
         )
     plt_bad = go.Scatter(
         x=df_bad["Date"],
@@ -108,7 +114,8 @@ def get_events_scatter(company_code):
             symbol=6,
             opacity=0.7,
         ),
-        mode='markers'
+        mode='markers',
+        name="Bad Sustainability Event",
     )
     return plt_good, plt_bad
 
