@@ -1,6 +1,6 @@
 from io import StringIO
 
-from dash import Dash, html, dcc, Output, Input
+from dash import Dash, html, dcc, Output, Input, dash_table
 import dash_bootstrap_components as dbc
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
@@ -10,8 +10,12 @@ import alpaca_trade_api as tradeapi
 
 from google.cloud import storage
 
-API_KEY = 'PK9LDUXHLJMJZIDWIP7S'
-SECRET_KEY = '2nBX4wGxrGtJbSK2ERuhTeHLNck9hvXQTjhKRmIR'
+from src.io.shh import SecretManager
+
+secret_manager = SecretManager("hackathon-team-10")
+
+API_KEY = secret_manager.get_secret("BOT_API_KEY")
+SECRET_KEY = secret_manager.get_secret("BOT_SECRET_KEY")
 BASE_URL = 'https://paper-api.alpaca.markets'
 LAST_PORTFOLIO_VALUE = 0
 
@@ -54,15 +58,31 @@ def read_blob_as_csv(bucket_name, file_name):
     return pd.read_csv(file)
 
 
-df_companies1 = read_blob_as_csv('hackathon-team-10-company-lists', "company_name_mappings.csv")
+# df_companies1 = read_blob_as_csv('hackathon-team-10-company-lists', "company_name_mappings.csv")
 df_companies = conn.run_qry("SELECT * FROM main.company_mappings_mid;")
 
-df_stocks1 = read_blob_as_csv('hackathon-team-10-ticker-data', "20220406_1d_nasdaq.csv")
+# df_stocks1 = read_blob_as_csv('hackathon-team-10-ticker-data', "20220406_1d_nasdaq.csv")
 df_stocks = conn.run_qry("SELECT * FROM main.nasdaq_history;")
 
-df_events1 = read_blob_as_csv('hackathon-team-10-test-data', "fake_gdelt_out.csv")
-df_events = conn.run_qry("SELECT * FROM main.stock_events;")
-
+# df_events1 = read_blob_as_csv('hackathon-team-10-test-data', "fake_gdelt_out.csv")
+df_events = conn.run_qry("""
+    SELECT  
+        date,
+        code,
+        name,
+        case when sentiment_score > 0 then 'buy' else 'sell' end as action,
+        corpus_score,
+        sentiment_score,
+        close as price
+    FROM 
+        main.stock_events
+    WHERE
+        corpus_score > 0.01
+        AND (sentiment_score > 0.01 OR sentiment_score < -0.01)
+    ORDER BY
+        date desc;
+    """)
+df_events["corpus_score"] = df_events["corpus_score"].round(2)
 
 app.layout = dbc.Container(
     [
@@ -112,13 +132,26 @@ app.layout = dbc.Container(
                 dbc.Row(
                     [
                         dbc.Col(
+                            dash_table.DataTable(
+                                data=df_events.to_dict('records'),
+                                columns=[{"name": i, "id": i} for i in df_events.columns],
+                                page_size=14,
+                                style_data={
+                                    'whiteSpace': 'normal',
+                                    'height': 'auto',
+                                },
+                                style_cell={'fontSize':10, 'font-family':'Arial'},
+                            ),
+                            width={'size': 5}
+                        ),
+                        dbc.Col(
                             [
                                 dcc.Graph(
                                     id="stock_graph",
-                                    figure={}
+                                    figure={},
                                 )
                             ],
-                            width={'size': 7, 'offset': 5}
+                            width={'size': 7}
                         ),
                     ],
                     # style={"backgroundColor": "#00864F"},
@@ -162,25 +195,22 @@ def get_portfolio_value(n):
     Input(component_id='slct_comp', component_property='value')
 )
 def generate_stockgraph_and_events(company_code: str):
+    df = conn.run_qry(f"SELECT * FROM main.stock_events WHERE code = '{company_code}'")
     fig = make_subplots()
-    fig.add_trace(get_stock_line(company_code))
-    plt_good, plt_bad = get_events_scatter(company_code)
+    fig.add_trace(get_stock_line(df))
+    plt_good, plt_bad = get_events_scatter(df)
     fig.add_trace(plt_good)
     fig.add_trace(plt_bad)
     return fig
 
 
-def get_stock_line(company_code):
-    df = df_stocks[df_stocks["ticker"] == company_code]
-    return go.Line(x=df["date"], y=df["close"], name="Stock")
+def get_stock_line(df):
+    return go.Line(x=df["date"], y=df["close"], name="Stock", showlegend=False)
 
 
-def get_events_scatter(company_code):
-    df_e = df_events[df_events["code"] == company_code]
-
-
-    df_good = df_e[df_e["sentiment_score"] > 0]
-    df_bad = df_e[df_e["sentiment_score"] < 0]
+def get_events_scatter(df):
+    df_good = df[df["sentiment_score"] > 0]
+    df_bad = df[df["sentiment_score"] < 0]
 
     plt_good = go.Scatter(
         x=df_good["date"],
@@ -193,6 +223,7 @@ def get_events_scatter(company_code):
             ),
         mode='markers',
         name="Good Sustainability Event",
+        showlegend = False,
         )
     plt_bad = go.Scatter(
         x=df_bad["date"],
@@ -205,6 +236,7 @@ def get_events_scatter(company_code):
         ),
         mode='markers',
         name="Bad Sustainability Event",
+        showlegend=False,
     )
     return plt_good, plt_bad
 
