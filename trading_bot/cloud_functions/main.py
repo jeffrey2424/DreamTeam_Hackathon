@@ -8,7 +8,6 @@ from datetime import datetime
 # initialize Connector object
 connector = Connector()
 
-
 # def _getconn():
 #     conn = connector.connect(
 #         "hackathon-team-10:us-central1:ui-backend-test",
@@ -21,25 +20,24 @@ connector = Connector()
 
 
 pool = sqlalchemy.create_engine(
-    drivername="postgresql+pg8000://",
-    username="postgres",
-    password="test",
-    database="postgres",
-    query={
-        "unix_sock": "/cloudsql/hackathon-team-10:us-central1:ui-backend-test.s.PGSQL.5432"
-    }
+    sqlalchemy.engine.url.URL.create(drivername="postgresql+pg8000://",
+                                     username="postgres",
+                                     password="test",
+                                     database="postgres",
+                                     query={
+                                         "unix_sock": "/cloudsql/hackathon-team-10:us-central1:ui-backend-test.s.PGSQL.5432"
+                                     }
+                                    )
 
 )
 
 
 def trade_stock(req):
-
     data = req.get_json()
 
     bq_run_time = data['bq_run_time']
 
     print(f'BQ TIME IS {bq_run_time}')
-
 
     print('setting up trade api')
     api = tradeapi.REST(config.API_KEY, config.SECRET_KEY, config.BASE_URL)
@@ -49,7 +47,6 @@ def trade_stock(req):
     # Load in the company name mappings
     c_map = _load_company_mappings()
     print('company mappings table loaded')
-
 
     # read the new gdelt info / need a timestamp
     latest_gdelt_events = _load_latest_gdelt_events(bq_run_time)
@@ -79,14 +76,12 @@ def trade_stock(req):
         except Exception as e:
             pass
 
-        try:            
+        try:
             now = datetime.now()
             now = now.strftime("%Y-%m-%d %H:%M:%S")
-            _insert_trades_made(date = now, ticker = symbol, trade = trade, quantity=10, url=article_url)
+            _insert_trades_made(date=now, ticker=symbol, trade=trade, quantity=10, url=article_url)
         except Exception as e:
             pass
-
-
 
     return {
         'code': 'success',
