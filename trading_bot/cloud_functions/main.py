@@ -25,7 +25,7 @@ pool = sqlalchemy.create_engine(
                                      password="test",
                                      database="postgres",
                                      query={
-                                         "unix_sock": "/cloudsql/hackathon-team-10:us-central1:ui-backend-test.s.PGSQL.5432"
+                                         "unix_sock": "/cloudsql/hackathon-team-10:us-central1:ui-backend-test/.s.PGSQL.5432"
                                      }
                                     )
 
