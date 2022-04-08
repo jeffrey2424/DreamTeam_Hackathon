@@ -101,7 +101,7 @@ def _load_company_mappings():
 def _load_latest_gdelt_events(bq_run_time):
     with pool.connect() as db_conn:
         # query database
-        result = db_conn.execute(f"SELECT * FROM gdelt_events_2 WHERE bq_run_time > {bq_run_time}").fetchall()
+        result = db_conn.execute(f"SELECT * FROM gdelt_events_2 WHERE bq_run_time >= '{bq_run_time}'").fetchall()
 
         return result
 
