@@ -9,20 +9,26 @@ from datetime import datetime
 connector = Connector()
 
 
-def _getconn():
-    conn = connector.connect(
-        "hackathon-team-10:us-central1:ui-backend-test",
-        "pg8000",
-        user="postgres",
-        password="test",
-        db="postgres"
-    )
-    return conn
+# def _getconn():
+#     conn = connector.connect(
+#         "hackathon-team-10:us-central1:ui-backend-test",
+#         "pg8000",
+#         user="postgres",
+#         password="test",
+#         db="postgres"
+#     )
+#     return conn
 
 
 pool = sqlalchemy.create_engine(
-    "postgresql+pg8000://",
-    creator=_getconn,
+    drivername="postgresql+pg8000://",
+    username="postgres",
+    password="test",
+    database="postgres",
+    query={
+        "unix_sock": "/cloudsql/hackathon-team-10:us-central1:ui-backend-test.s.PGSQL.5432"
+    }
+
 )
 
 
