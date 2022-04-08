@@ -20,7 +20,7 @@ connector = Connector()
 
 
 pool = sqlalchemy.create_engine(
-    sqlalchemy.engine.url.URL.create(drivername="postgresql+pg8000://",
+    sqlalchemy.engine.url.URL.create(drivername="postgresql+pg8000",
                                      username="postgres",
                                      password="test",
                                      database="postgres",
