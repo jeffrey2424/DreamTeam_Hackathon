@@ -68,7 +68,7 @@ def trade_stock(req):
         try:
             order = api.submit_order(
                 symbol,
-                10,
+                1,
                 trade,
                 'market',
                 'gtc'
