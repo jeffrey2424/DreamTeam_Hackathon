@@ -76,7 +76,7 @@ def trade_stock(req):
             orders.append(order)
             print('Trade made')
         except Exception as e:
-            print('Error making trade')
+            print(f"Error making trade - {str(e)}")
 
         try:
             now = datetime.now()
