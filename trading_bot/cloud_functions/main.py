@@ -50,6 +50,7 @@ def trade_stock(req):
 
     # read the new gdelt info / need a timestamp
     latest_gdelt_events = _load_latest_gdelt_events(bq_run_time)
+    print(f"{latest_gdelt_events} events found")
 
     # make trades
 
@@ -59,10 +60,10 @@ def trade_stock(req):
         print(row)
         print('-------')
 
-        article_url, _, _, mid, _, _, sent, _, _, _ = row
+        article_url, _, _, mid, _, _, _, sent, _, _ = row
 
         symbol = c_map[mid]
-        trade = 'buy' if sent > 0.5 else 'sell'
+        trade = 'buy' if sent > 0 else 'sell'
 
         try:
             order = api.submit_order(
@@ -74,7 +75,7 @@ def trade_stock(req):
             )
             orders.append(order)
         except Exception as e:
-            pass
+            print('Error making trade')
 
         try:
             now = datetime.now()
@@ -91,7 +92,7 @@ def trade_stock(req):
 def _load_company_mappings():
     with pool.connect() as db_conn:
         # query database
-        result = db_conn.execute("SELECT * FROM main.company_mappings_mid").fetchall()
+        result = db_conn.execute("SELECT * FROM main.company_mappings_mid;").fetchall()
 
         d = {row[4]: row[1] for row in result}
 
@@ -101,7 +102,7 @@ def _load_company_mappings():
 def _load_latest_gdelt_events(bq_run_time):
     with pool.connect() as db_conn:
         # query database
-        result = db_conn.execute(f"SELECT * FROM gdelt_events_2 WHERE bq_run_time >= '{bq_run_time}'").fetchall()
+        result = db_conn.execute(f"SELECT * FROM gdelt_events_2 WHERE bq_run_time >= '{bq_run_time}';").fetchall()
 
         return result
 
