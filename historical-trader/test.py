@@ -115,7 +115,7 @@ def decision_func_1(series):
 
 
 def decision_func_2(series):
-    if (series["sentiment_score"] > 0.2) and (series["sentiment_salience"] > 0.5):
+    if (series["sentiment_score"] > 0) and (series["sentiment_magnitude"] > 10):
         return True
 
 
