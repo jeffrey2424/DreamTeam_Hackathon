@@ -5,6 +5,7 @@ import dash_bootstrap_components as dbc
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import pandas as pd
+import numpy as np
 import alpaca_trade_api as tradeapi
 
 from google.cloud import storage
@@ -19,7 +20,7 @@ from src.io.sql import SQLConnection
 
 conn = SQLConnection(
         connection_name="hackathon-team-10:us-central1:ui-backend-test",
-        db="gdelt_sustainability"
+        db="postgres"
     )
 
 
@@ -35,8 +36,8 @@ api = tradeapi.REST(API_KEY, SECRET_KEY, BASE_URL)
 
 
 colours = {
-    'background': '#00864F',
-    'text': '#FFFFFF'
+    'background': '#ccffcc',
+    'text': '#000000'
 }
 
 LOGO_URL = "https://storage.googleapis.com/london_wall_street_bets/London%20Wall%20Street%20Bets%20Scenic.png"
@@ -53,70 +54,87 @@ def read_blob_as_csv(bucket_name, file_name):
     return pd.read_csv(file)
 
 
-df_companies = read_blob_as_csv('hackathon-team-10-company-lists', "company_name_mappings.csv")
-df_stocks = read_blob_as_csv('hackathon-team-10-ticker-data', "20220406_1d_nasdaq.csv")
-df_events = read_blob_as_csv('hackathon-team-10-test-data', "fake_gdelt_out.csv")
+df_companies1 = read_blob_as_csv('hackathon-team-10-company-lists', "company_name_mappings.csv")
+df_companies = conn.run_qry("SELECT * FROM main.company_mappings_mid;")
+
+df_stocks1 = read_blob_as_csv('hackathon-team-10-ticker-data', "20220406_1d_nasdaq.csv")
+df_stocks = conn.run_qry("SELECT * FROM main.nasdaq_history;")
+
+df_events1 = read_blob_as_csv('hackathon-team-10-test-data', "fake_gdelt_out.csv")
+df_events = conn.run_qry("SELECT * FROM main.gdelt_events_coded;")
 
 
 app.layout = dbc.Container(
     [
-        html.A(
+        dbc.Container(
             dbc.Row(
                 [
-                    dbc.Col(html.H1(children='Company Stock Checker', style={"color": colours["text"], 'textAlign': 'left', 'margin-top': 45}), width=5),
-                    dbc.Col(html.Img(src=LOGO_URL, style={'height': '100%', 'width': '100%'}), width={'size': 2, 'offset': 5}),
+                    dbc.Col(html.H1(children='London Wall Street Bets Stock Checker', style={"color": colours["text"], 'textAlign': 'left', 'margin-top': 45}), width=8),
+                    dbc.Col(html.Img(src=LOGO_URL, style={'height': '100%', 'width': '100%'}), width={'size': 2, 'offset': 2}),
                 ],
                 className='border border-dark',
                 style={"backgroundColor": "#00864F"},
             ),
         ),
-        html.A(
+        dbc.Container(
             [
-                dbc.Col(
+                dbc.Row(
                     [
-                        dbc.Row(
+                        dbc.Col(
                             [
                                 html.Div(
                                     children="Select a company to check",
                                     style={"color": colours["text"], 'textAlign': 'left'}
                                 ),
-                            ]
-                        ),
-                        dbc.Row(
-                            [
                                 dcc.Dropdown(
                                     id="slct_comp",
-                                    options={row[1]["Code"]: row[1]["Name"] for row in df_companies.iterrows()},
+                                    options={row[1]["code"]: row[1]["gkg_name"] for row in df_companies.iterrows()},
                                     multi=False,
-                                    style={'width': "40%"},
+                                    # style={'width': "40%"},
                                     value="GOOG"
                                 ),
-
-                            ]
+                            ],
+                            width={'size': 5}
                         ),
-                    ]
-                ),
-                dbc.Col(
-                    [
-                        dbc.Row(
+                        dbc.Col(
                             [
-                                dcc.Interval(id='portfolio_value_interval', interval=2000),
+                                dcc.Interval(id='portfolio_value_interval', interval=5000),
                                 html.H2(id='portfolio_value', children=''),
+                            ],
+                            width={'size': 7}
+                        ),
+                    ],
+                    style={'margin-top': 45},
+                    # width={'size': 7}
+                    # style={"backgroundColor": "#00864F"},
+                    # no_gutters=True
+                ),
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            [
                                 dcc.Graph(
                                     id="stock_graph",
                                     figure={}
                                 )
-                            ]
+                            ],
+                            width={'size': 7, 'offset': 5}
                         ),
-                    ]
+                    ],
+                    # style={"backgroundColor": "#00864F"},
+                    # no_gutters=True
+                    style={'margin-top': 45, 'margin-bottom': 45},
                 ),
-            ]
+            ],
+            style={"backgroundColor": colours["background"]},
+            className='border border-dark',
+            # fluid=False,
         ),
     ],
     style={
         "width": "100%",
         "height": "100vh",
-        "backgroundColor": colours["background"],
+        # "backgroundColor": colours["background"],
         "font-family": 'Arial'
     }
 )
@@ -153,22 +171,31 @@ def generate_stockgraph_and_events(company_code: str):
 
 
 def get_stock_line(company_code):
-    df = df_stocks[df_stocks["Company"] == company_code]
-    return go.Line(x=df["Date"], y=df["Close"], name="Stock")
+    df = df_stocks[df_stocks["ticker"] == company_code]
+    return go.Line(x=df["date"], y=df["close"], name="Stock")
 
 
 def get_events_scatter(company_code):
-    company_name = df_companies[df_companies["Code"] == company_code]["Name"].iloc[0]
-    df_e = df_events[df_events["Company"] == company_name]
-    df_s = df_stocks[df_stocks["Company"] == company_code]
+    # gkg_name = df_companies[df_companies["code"] == company_code]["gkg_name"].iloc[0]
+    df_e = df_events[df_events["code"] == company_code]
+    df_e["date"] = df_e["article_dttm"].dt.date
+    df_e["date"] = np.datetime_as_string(df_e["date"])
+    # df_e = df_e.set_index("date")
 
-    df_comb = pd.merge(df_e, df_s, how='inner', on="Date")
-    df_good = df_comb[df_comb["SentimentScore"] > 0]
-    df_bad = df_comb[df_comb["SentimentScore"] < 0]
+    df_s = df_stocks[df_stocks["ticker"] == company_code]
+    df_s["date"] = pd.to_datetime(df_s["date"], format="%d/%m/%Y")
+    df_s["date"] = np.datetime_as_string(df_s["date"])
+    # df_s = df_s.set_index("date")
+
+    # df_comb = pd.concat([df_e, df_s], axis=1)
+    df_comb = pd.merge(df_e, df_s, how='inner', on="date")
+
+    df_good = df_comb[df_comb["sentiment_score"] > 0]
+    df_bad = df_comb[df_comb["sentiment_score"] < 0]
 
     plt_good = go.Scatter(
-        x=df_good["Date"],
-        y=df_good["Close"],
+        x=df_good["date"],
+        y=df_good["close"],
         marker=dict(
             color='Green',
             size=15,
@@ -179,8 +206,8 @@ def get_events_scatter(company_code):
         name="Good Sustainability Event",
         )
     plt_bad = go.Scatter(
-        x=df_bad["Date"],
-        y=df_bad["Close"],
+        x=df_bad["date"],
+        y=df_bad["close"],
         marker=dict(
             color='Red',
             size=15,

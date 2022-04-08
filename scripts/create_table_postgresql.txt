@@ -46,3 +46,35 @@ CREATE TABLE IF NOT EXISTS main.nasdaq_history (
    Open REAL, 
    VOLUME INTEGER
 );
+
+CREATE VIEW main.gdelt_events_coded AS
+    SELECT
+    A.*,
+    B.code,
+    CAST(DATE(A.article_dttm) AS CHAR(10))
+    FROM gdelt_events_2 A
+    INNER JOIN main.company_mappings_mid B
+    ON A.mid = b.mid;
+
+CREATE VIEW main.stock_events AS
+    SELECT
+    A.*,
+    B.code
+    FROM gdelt_events_2 A
+    INNER JOIN main.company_mappings_mid B
+    ON A.mid = B.mid
+    INNER JOIN main.nasdaq_history C
+    ON B.code = C.code
+    AND CAST(LEFT(A.article_dttm, 10) AS DATE) = CAST(c.date as DATE)
+
+
+CREATE VIEW main.stock_events AS
+    SELECT
+    A.*,
+    B.code
+    FROM gdelt_events_2 A
+    INNER JOIN main.company_mappings_mid B
+    ON A.mid = B.mid
+    INNER JOIN main.nasdaq_history C
+    ON B.code = C.code
+    AND CAST(LEFT(A.article_dttm, 10) AS DATE) = CAST(c.date as DATE)
