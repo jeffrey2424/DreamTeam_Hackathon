@@ -60,10 +60,10 @@ def trade_stock(req):
         print(row)
         print('-------')
 
-        article_url, _, _, mid, _, _, _, sent, _, _ = row
+        bqt, url, ardt, title, mid, gdelt_ent, c_score, s_mag, s_score, s_sal = row
 
         symbol = c_map[mid]
-        trade = 'buy' if sent > 0 else 'sell'
+        trade = 'buy' if s_score > 0 else 'sell'
 
         try:
             order = api.submit_order(
@@ -74,13 +74,14 @@ def trade_stock(req):
                 'gtc'
             )
             orders.append(order)
+            print('Trade made')
         except Exception as e:
             print('Error making trade')
 
         try:
             now = datetime.now()
             now = now.strftime("%Y-%m-%d %H:%M:%S")
-            _insert_trades_made(date=now, ticker=symbol, trade=trade, quantity=10, url=article_url)
+            _insert_trades_made(date=now, ticker=symbol, trade=trade, quantity=10, url=url)
         except Exception as e:
             pass
 
