@@ -8,6 +8,7 @@ from datetime import datetime
 # initialize Connector object
 connector = Connector()
 
+
 def _getconn():
     conn = connector.connect(
         "hackathon-team-10:us-central1:ui-backend-test",
@@ -31,10 +32,18 @@ def trade_stock(req):
 
     bq_run_time = data['bq_run_time']
 
-    api = tradeapi.REST(config.API_KEY, config.SECRET_KEY, config.BASE_URL)
+    print(f'BQ TIME IS {bq_run_time}')
 
+
+    print('setting up trade api')
+    api = tradeapi.REST(config.API_KEY, config.SECRET_KEY, config.BASE_URL)
+    print('trade api is set up')
+
+    print('loading from company mappings dict')
     # Load in the company name mappings
     c_map = _load_company_mappings()
+    print('company mappings table loaded')
+
 
     # read the new gdelt info / need a timestamp
     latest_gdelt_events = _load_latest_gdelt_events(bq_run_time)
