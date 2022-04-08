@@ -61,7 +61,7 @@ df_stocks1 = read_blob_as_csv('hackathon-team-10-ticker-data', "20220406_1d_nasd
 df_stocks = conn.run_qry("SELECT * FROM main.nasdaq_history;")
 
 df_events1 = read_blob_as_csv('hackathon-team-10-test-data', "fake_gdelt_out.csv")
-df_events = conn.run_qry("SELECT * FROM main.gdelt_events_coded;")
+df_events = conn.run_qry("SELECT * FROM main.stock_events;")
 
 
 app.layout = dbc.Container(
@@ -176,22 +176,11 @@ def get_stock_line(company_code):
 
 
 def get_events_scatter(company_code):
-    # gkg_name = df_companies[df_companies["code"] == company_code]["gkg_name"].iloc[0]
     df_e = df_events[df_events["code"] == company_code]
-    df_e["date"] = df_e["article_dttm"].dt.date
-    df_e["date"] = np.datetime_as_string(df_e["date"])
-    # df_e = df_e.set_index("date")
 
-    df_s = df_stocks[df_stocks["ticker"] == company_code]
-    df_s["date"] = pd.to_datetime(df_s["date"], format="%d/%m/%Y")
-    df_s["date"] = np.datetime_as_string(df_s["date"])
-    # df_s = df_s.set_index("date")
 
-    # df_comb = pd.concat([df_e, df_s], axis=1)
-    df_comb = pd.merge(df_e, df_s, how='inner', on="date")
-
-    df_good = df_comb[df_comb["sentiment_score"] > 0]
-    df_bad = df_comb[df_comb["sentiment_score"] < 0]
+    df_good = df_e[df_e["sentiment_score"] > 0]
+    df_bad = df_e[df_e["sentiment_score"] < 0]
 
     plt_good = go.Scatter(
         x=df_good["date"],

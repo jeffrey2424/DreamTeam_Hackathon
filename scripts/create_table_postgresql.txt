@@ -51,30 +51,30 @@ CREATE VIEW main.gdelt_events_coded AS
     SELECT
     A.*,
     B.code,
-    CAST(DATE(A.article_dttm) AS CHAR(10))
+    CAST(DATE(A.article_dttm) AS CHAR(10)) as clean_date
     FROM gdelt_events_2 A
     INNER JOIN main.company_mappings_mid B
     ON A.mid = b.mid;
 
-CREATE VIEW main.stock_events AS
+
+
+CREATE VIEW main.stock_clean AS
     SELECT
     A.*,
-    B.code
-    FROM gdelt_events_2 A
-    INNER JOIN main.company_mappings_mid B
-    ON A.mid = B.mid
-    INNER JOIN main.nasdaq_history C
-    ON B.code = C.code
-    AND CAST(LEFT(A.article_dttm, 10) AS DATE) = CAST(c.date as DATE)
+    CONCAT(SUBSTRING(date, 7, 4), '-', SUBSTRING(date, 4, 2), '-', SUBSTRING(date, 1, 2)) as clean_date
+    FROM main.nasdaq_history A
 
 
 CREATE VIEW main.stock_events AS
     SELECT
-    A.*,
-    B.code
-    FROM gdelt_events_2 A
-    INNER JOIN main.company_mappings_mid B
-    ON A.mid = B.mid
-    INNER JOIN main.nasdaq_history C
-    ON B.code = C.code
-    AND CAST(LEFT(A.article_dttm, 10) AS DATE) = CAST(c.date as DATE)
+    A.clean_date as date,
+    A.gdelt_entity_name as name,
+    A.corpus_score,
+    A.sentiment_score,
+    A.code,
+    B.close
+    FROM main.gdelt_events_coded A
+    INNER JOIN main.stock_clean B
+    ON A.code = B.ticker
+    AND A.clean_date = B.clean_date
+
